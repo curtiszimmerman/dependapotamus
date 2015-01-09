@@ -10,12 +10,19 @@
  */
 
 var __http = (function() {
+	var fs = require('fs');
 	var http = require('http');
+	var url = require('url');
 	var yargs = require('yargs');
 
 	var worker = require('./lib/worker.js');
 
 	var $data = {
+		cache: {
+			settings: {
+				requestIDLength: 12
+			}
+		},
 		database: {
 			settings: {
 				active: false
@@ -24,7 +31,38 @@ var __http = (function() {
 		server: {
 			settings: {
 				argv: null,
+				logs: {
+					level: 2,
+					quiet: false
+				},
 				port: 4488
+			}
+		}
+	};
+
+	var $func = {
+		send: {
+			file: function( requestID, file ) {
+				return false;
+			},
+			status: function( requestID, status ) {
+				return false;
+			}
+		},
+		util: {
+			/**
+			 * @function $func.getID
+			 * Generates an alphanumeric ID key of specified length.
+			 * @param (int) IDLength - Length of the ID to create.
+			 * @return (string) The generated ID.
+			 */
+			getID: function( IDLength ) {
+				var charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+				var len = typeof(IDLength) === 'number' ? IDLength : $data.cache.settings.requestIDLength;
+				for ( var i = 0, id = ''; i < len; i++ ) {
+					id += charset.substr(Math.floor(Math.random()*charset.length), 1);
+				}
+				return id;
 			}
 		}
 	};
@@ -64,7 +102,7 @@ var __http = (function() {
 		var _info = function( data ) { return _con(data, 3);};
 		var _log = function( data, loglevel ) {
 			var loglevel = typeof(loglevel) === 'undefined' ? 1 : loglevel > 4 ? 4 : loglevel;
-			return $data.server.state.logs.quiet ? loglevel === 0 && _con(data, 0) : loglevel <= $data.server.state.logs.level && _con(data, loglevel);
+			return $data.server.settings.logs.quiet ? loglevel === 0 && _con(data, 0) : loglevel <= $data.server.settings.logs.level && _con(data, loglevel);
 		};
 		var _warn = function( data ) { return _con(data, 2);};
 		return {
@@ -124,7 +162,7 @@ var __http = (function() {
 		};
 	})();
 
-	var init = (function() {
+	var init = function() {
 		$data.server.argv = yargs
 			.usage('Usage: $0 [-d|--database] [-p|--port port] [-q|--quiet] [-v verbosity]')
 			.alias('d', 'database')
@@ -137,16 +175,38 @@ var __http = (function() {
 		if ($data.server.argv.port) $data.server.settings.port = $data.server.argv.port;
 		if ($data.server.argv.quiet) $data.server.settings.logs.quiet = true;
 		if ($data.server.argv.verbose) $data.server.settings.logs.level = $data.server.argv.verbose+1;
-	})();
 
-	var web = (function() {
+		_pubsub.sub('/dependapotamus/client/send/file', $func.send.file);
+		_pubsub.sub('/dependapotamus/client/send/status', $func.send.status);
+	};
+
+	var web = function() {
+		init();
 		var server = http.createServer(function(req, res) {
+			var pathname = url.parse(req.url).pathname;
+			var requestID = $func.util.getID();
 			var timestamp = Math.round(new Date().getTime()/1000.0);
 			_log.log('Received request for '+req.url+' at '+timestamp);
+			if (pathname === '/favicon.ico') {
+				_pubsub.pub('/dependapotamus/client/send/status', [requestID, 404]);
+			} else if (pathname === '/index.html' || pathname === '/') {
+				_pubsub.pub('/dependapotamus/client/send/file', [requestID, 'index.html']);
+			} else {
+				_pubsub.pub('/dependapotamus/client/send/status', [requestID, 404]);
+			}
 		}).on('error', function(e) {
 			_log.error('Error in server: '+e.message);
 		}).listen( $data.server.settings.port );
-	})();
+	};
 
+	if (require.main === module) {
+		return web();
+	} else {
+		return {
+			__test: {
+				func: $func
+			}
+		};
+	}
 })();
 
