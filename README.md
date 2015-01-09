@@ -7,9 +7,10 @@ Node.js-based source code dependency analysis tool utilizing d3.js visualization
 Installation
 ============
 
-Clone the repo. Ensure the target software project files are readable. Start the application.
+Clone the repo and install dependencies via npm. Ensure the target software project files are readable. Start the application.
 
 ```sh
+  $ npm install
   $ node ./web.js
 ```
 
