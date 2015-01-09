@@ -1,0 +1,28 @@
+{
+  "name": "dependapotamus",
+  "version": "0.0.1",
+  "description": "Web-based source code dependency visualizer using d3.js.",
+  "main": "web.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "dependencies": {
+    "yargs": "1.3.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/curtiszimmerman/dependapotamus.git"
+  },
+  "keywords": [
+    "dependency visualizer",
+    "source code visualizer",
+    "source code analysis",
+    "dependency analysis"
+  ],
+  "author": "Curtis Zimmerman <software@curtisz.com> (http://curtisz.com/)",
+  "license": "AGPLv3",
+  "bugs": {
+    "url": "https://github.com/curtiszimmerman/dependapotamus/issues"
+  },
+  "homepage": "https://github.com/curtiszimmerman/dependapotamus"
+}
